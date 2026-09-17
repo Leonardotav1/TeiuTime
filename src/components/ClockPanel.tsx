@@ -1,5 +1,4 @@
 import { Microscope, Moon, Sun } from 'lucide-react'
-import { GiRooster, GiVampireDracula } from 'react-icons/gi'
 import { pad } from '../hooks/useTeiuTime'
 import { IconButton } from './IconButton'
 import { MainDisplay } from './MainDisplay'
@@ -12,20 +11,15 @@ const fmtDate = (d: Date) => {
 export function ClockPanel({
   now,
   secondsOn,
-  hexMode,
   onToggleSeconds,
-  onToggleHex,
 }: {
   now: number
   secondsOn: boolean
-  hexMode: boolean
   onToggleSeconds: () => void
-  onToggleHex: () => void
 }) {
   const d = new Date(now)
   const h24 = d.getHours()
-  const hour = hexMode ? pad(h24) : pad((h24 + 11) % 12 + 1)
-  const text = `${hour}:${pad(d.getMinutes())}${secondsOn ? `:${pad(d.getSeconds())}` : ''}`
+  const text = `${pad(h24)}:${pad(d.getMinutes())}${secondsOn ? `:${pad(d.getSeconds())}` : ''}`
 
   return (
     <section className="panel clock">
@@ -46,11 +40,6 @@ export function ClockPanel({
           active={secondsOn}
           pulse={secondsOn}
           onClick={onToggleSeconds}
-        />
-        <IconButton
-          icon={hexMode ? <GiVampireDracula /> : <GiRooster />}
-          alt="formato do dia"
-          onClick={onToggleHex}
         />
       </div>
     </section>
