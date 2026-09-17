@@ -28,8 +28,6 @@ export interface TeiuTime {
   setTab: (t: Tab) => void
   secondsOn: boolean
   toggleSeconds: () => void
-  hexMode: boolean
-  setHexMode: (v: boolean) => void
   alarms: Alarm[]
   addAlarm: () => void
   updateAlarm: (id: number, patch: Partial<Pick<Alarm, 'time' | 'enabled'>>) => void
@@ -66,7 +64,6 @@ export function useTeiuTime(): TeiuTime {
   const [now, setNow] = useState(() => Date.now())
   const [tab, setTab] = useState<Tab>('clock')
   const [secondsOn, setSecondsOn] = useState(false)
-  const [hexMode, setHexMode] = useState(true)
 
   const [alarms, setAlarms] = useState<Alarm[]>(() => [{ id: 1, time: nowTime(), enabled: false }])
   const [alarmFiring, setAlarmFiring] = useState(false)
@@ -244,8 +241,6 @@ export function useTeiuTime(): TeiuTime {
     setTab,
     secondsOn,
     toggleSeconds: () => setSecondsOn((s) => !s),
-    hexMode,
-    setHexMode,
     alarms,
     addAlarm,
     updateAlarm,

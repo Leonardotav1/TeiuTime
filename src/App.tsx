@@ -32,9 +32,7 @@ export default function App() {
             <ClockPanel
               now={t.now}
               secondsOn={t.secondsOn}
-              hexMode={t.hexMode}
               onToggleSeconds={t.toggleSeconds}
-              onToggleHex={() => t.setHexMode(!t.hexMode)}
             />
           )}
           {t.tab === 'alarm' && (
