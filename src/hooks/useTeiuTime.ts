@@ -16,20 +16,24 @@ export function fmtStopwatch(ms: number): string {
   return `${pad(min)}:${pad(sec)}.${tenth}`
 }
 
+export interface Alarm {
+  id: number
+  time: string
+  enabled: boolean
+}
+
 export interface TeiuTime {
   now: number
   tab: Tab
   setTab: (t: Tab) => void
-  hue: number
-  setHue: (h: number) => void
   secondsOn: boolean
   toggleSeconds: () => void
   hexMode: boolean
   setHexMode: (v: boolean) => void
-  alarmTime: string
-  setAlarmTime: (t: string) => void
-  alarmEnabled: boolean
-  setAlarmEnabled: (v: boolean) => void
+  alarms: Alarm[]
+  addAlarm: () => void
+  updateAlarm: (id: number, patch: Partial<Pick<Alarm, 'time' | 'enabled'>>) => void
+  removeAlarm: (id: number) => void
   alarmFiring: boolean
   dismissAlarm: () => void
   sw: SwState
@@ -48,18 +52,25 @@ export interface TeiuTime {
   dismissTimer: () => void
 }
 
-const dayOf = (t: number) => new Date(t).getDate()
+const dayOf = (t: number) => {
+  const d = new Date(t)
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+}
+
+const nowTime = () => {
+  const d = new Date()
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export function useTeiuTime(): TeiuTime {
   const [now, setNow] = useState(() => Date.now())
   const [tab, setTab] = useState<Tab>('clock')
-  const [hue, setHue] = useState(190)
   const [secondsOn, setSecondsOn] = useState(false)
   const [hexMode, setHexMode] = useState(true)
 
-  const [alarmTime, setAlarmTime] = useState('07:30')
-  const [alarmEnabled, setAlarmEnabled] = useState(false)
+  const [alarms, setAlarms] = useState<Alarm[]>(() => [{ id: 1, time: nowTime(), enabled: false }])
   const [alarmFiring, setAlarmFiring] = useState(false)
+  const [firingId, setFiringId] = useState<number | null>(null)
 
   const [sw, setSw] = useState<SwState>('idle')
   const [swBase, setSwBase] = useState(0)
@@ -72,26 +83,46 @@ export function useTeiuTime(): TeiuTime {
   const [timerBase, setTimerBase] = useState(300_000)
   const [timerFiring, setTimerFiring] = useState(false)
 
-  const alarmEnabledRef = useRef(alarmEnabled)
+  const alarmsRef = useRef(alarms)
   const alarmFiringRef = useRef(alarmFiring)
-  const alarmTimeRef = useRef(alarmTime)
-  const firedDayRef = useRef(-1)
+  const firingIdRef = useRef(firingId)
+  const firedRef = useRef<Record<number, string>>({})
+  const armedRef = useRef<Record<number, { day: number; min: number }>>({})
+  const nextAlarmIdRef = useRef(2)
   const timerRef = useRef(timer)
   const timerEndRef = useRef(timerEnd)
   const timerFiringRef = useRef(timerFiring)
 
   useEffect(() => {
-    alarmEnabledRef.current = alarmEnabled
-  }, [alarmEnabled])
+    alarmsRef.current = alarms
+  }, [alarms])
   useEffect(() => {
     alarmFiringRef.current = alarmFiring
   }, [alarmFiring])
   useEffect(() => {
-    alarmTimeRef.current = alarmTime
-  }, [alarmTime])
+    firingIdRef.current = firingId
+  }, [firingId])
   useEffect(() => {
     timerRef.current = timer
   }, [timer])
+
+  useEffect(() => {
+    const t = Date.now()
+    const d = new Date(t)
+    const day = dayOf(t)
+    const curMin = d.getHours() * 60 + d.getMinutes()
+    const nextArmed: Record<number, { day: number; min: number }> = {}
+    const nextFired: Record<number, string> = {}
+    for (const a of alarms) {
+      if (!a.enabled) continue
+      const prev = armedRef.current[a.id]
+      nextArmed[a.id] = prev && prev.day === day ? prev : { day, min: curMin }
+      const pf = firedRef.current[a.id]
+      if (pf && pf.startsWith(`${day}:`)) nextFired[a.id] = pf
+    }
+    armedRef.current = nextArmed
+    firedRef.current = nextFired
+  }, [alarms])
   useEffect(() => {
     timerEndRef.current = timerEnd
   }, [timerEnd])
@@ -106,18 +137,26 @@ export function useTeiuTime(): TeiuTime {
 
       const d = new Date(t)
       const curMin = d.getHours() * 60 + d.getMinutes()
-      const m = alarmTimeRef.current.match(/(\d{1,2}):(\d{1,2})/)
-      const alarmMin = m ? +m[1] * 60 + +m[2] : -1
-      if (
-        alarmEnabledRef.current &&
-        !alarmFiringRef.current &&
-        alarmMin >= 0 &&
-        curMin >= alarmMin &&
-        firedDayRef.current !== dayOf(t)
-      ) {
-        firedDayRef.current = dayOf(t)
-        setAlarmFiring(true)
-        ringLoop(880)
+      const day = dayOf(t)
+      if (!alarmFiringRef.current) {
+        for (const a of alarmsRef.current) {
+          if (!a.enabled) continue
+          const m = a.time.match(/(\d{1,2}):(\d{1,2})/)
+          if (!m) continue
+          const alarmMin = +m[1] * 60 + +m[2]
+          const key = `${day}:${a.time}`
+          if (firedRef.current[a.id] === key) continue
+          const armed = armedRef.current[a.id]
+          if (!armed) continue
+          const armedBefore = armed.day < day || (armed.day === day && armed.min < alarmMin)
+          if (alarmMin >= 0 && armedBefore && curMin >= alarmMin) {
+            firedRef.current[a.id] = key
+            setFiringId(a.id)
+            setAlarmFiring(true)
+            ringLoop(880)
+            break
+          }
+        }
       }
 
       if (timerRef.current === 'run' && t >= timerEndRef.current && !timerFiringRef.current) {
@@ -179,25 +218,47 @@ export function useTeiuTime(): TeiuTime {
     setTimerFiring(false)
   }
 
+  const addAlarm = () => {
+    const id = nextAlarmIdRef.current++
+    setAlarms((list) => [...list, { id, time: nowTime(), enabled: false }])
+  }
+
+  const updateAlarm = (id: number, patch: Partial<Pick<Alarm, 'time' | 'enabled'>>) => {
+    setAlarms((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+  }
+
+  const removeAlarm = (id: number) => {
+    if (firingIdRef.current === id) {
+      stopRing()
+      setAlarmFiring(false)
+      setFiringId(null)
+    }
+    delete firedRef.current[id]
+    delete armedRef.current[id]
+    setAlarms((list) => list.filter((a) => a.id !== id))
+  }
+
   return {
     now,
     tab,
     setTab,
-    hue,
-    setHue,
     secondsOn,
     toggleSeconds: () => setSecondsOn((s) => !s),
     hexMode,
     setHexMode,
-    alarmTime,
-    setAlarmTime,
-    alarmEnabled,
-    setAlarmEnabled,
+    alarms,
+    addAlarm,
+    updateAlarm,
+    removeAlarm,
     alarmFiring,
     dismissAlarm: () => {
       stopRing()
       setAlarmFiring(false)
-      setAlarmEnabled(false)
+      const id = firingIdRef.current
+      if (id !== null) {
+        setAlarms((list) => list.map((a) => (a.id === id ? { ...a, enabled: false } : a)))
+        setFiringId(null)
+      }
     },
     sw,
     elapsed,

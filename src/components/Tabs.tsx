@@ -1,10 +1,13 @@
+import { Bomb, DoorClosed, Music } from 'lucide-react'
+import { GiRun } from 'react-icons/gi'
+import type { ReactNode } from 'react'
 import type { Tab } from '../hooks/useTeiuTime'
 
-const TABS: { k: Tab; e: string; alt: string }[] = [
-  { k: 'clock', e: '✨', alt: 'Hora atual' },
-  { k: 'alarm', e: '🌅', alt: 'Alarme' },
-  { k: 'stopwatch', e: '🏃', alt: 'Cronômetro' },
-  { k: 'timer', e: '🍳', alt: 'Temporizador' },
+const TABS: { k: Tab; icon: ReactNode; alt: string }[] = [
+  { k: 'clock', icon: <DoorClosed />, alt: 'Hora atual' },
+  { k: 'alarm', icon: <Music />, alt: 'Alarme' },
+  { k: 'stopwatch', icon: <GiRun />, alt: 'Cronômetro' },
+  { k: 'timer', icon: <Bomb />, alt: 'Temporizador' },
 ]
 
 export function Tabs({ active, onSelect }: { active: Tab; onSelect: (t: Tab) => void }) {
@@ -17,8 +20,8 @@ export function Tabs({ active, onSelect }: { active: Tab; onSelect: (t: Tab) => 
           onClick={() => onSelect(t.k)}
           aria-label={t.alt}
         >
-          <span className="tab-emoji" aria-hidden="true">
-            {t.e}
+          <span className="tab-icon" aria-hidden="true">
+            {t.icon}
           </span>
         </button>
       ))}

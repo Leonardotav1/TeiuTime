@@ -35,10 +35,11 @@ export function DotMatrix({ text, className, dim }: { text: string; className?: 
     cursor += 5 * UNIT + UNIT * 0.9
   }
   const w = cursor - UNIT * 0.9
+  const M = 0.55
   return (
     <svg
       className={className}
-      viewBox={`0 0 ${w} ${7 * UNIT}`}
+      viewBox={`${-M} ${-M} ${w + M * 2} ${7 * UNIT + M * 2}`}
       role="img"
       aria-hidden="true"
       style={dim ? { opacity: 0.18 } : undefined}

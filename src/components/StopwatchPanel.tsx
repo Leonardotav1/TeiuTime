@@ -1,6 +1,8 @@
+import { Hand } from 'lucide-react'
+import { GiCheckeredFlag, GiFishingPole, GiPistolGun } from 'react-icons/gi'
 import { fmtStopwatch } from '../hooks/useTeiuTime'
 import { DotMatrix } from './DotMatrix'
-import { EmojiButton } from './EmojiButton'
+import { IconButton } from './IconButton'
 
 export function StopwatchPanel({
   sw,
@@ -37,15 +39,15 @@ export function StopwatchPanel({
       </div>
 
       <div className="actions">
-        <EmojiButton glyph="♻️" alt="recomeçar" disabled={sw === 'idle'} onClick={onReset} />
-        <EmojiButton
-          glyph={running ? '❄️' : '🚀'}
+        <IconButton icon={<GiCheckeredFlag />} alt="recomeçar" disabled={sw === 'idle'} onClick={onReset} />
+        <IconButton
+          icon={running ? <Hand /> : <GiPistolGun />}
           alt={running ? 'pausar' : 'iniciar'}
           big
           pulse={running}
           onClick={onToggle}
         />
-        <EmojiButton glyph="📍" alt="marcar volta" disabled={sw === 'idle'} onClick={onLap} />
+        <IconButton icon={<GiFishingPole />} alt="marcar volta" disabled={sw === 'idle'} onClick={onLap} />
       </div>
     </section>
   )

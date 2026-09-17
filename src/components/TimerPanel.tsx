@@ -1,8 +1,25 @@
+import { useState } from 'react'
+import { ArrowDown, ArrowUp, Hand } from 'lucide-react'
+import { GiPistolGun, GiSkullCrossedBones } from 'react-icons/gi'
 import { pad } from '../hooks/useTeiuTime'
 import { DotMatrix } from './DotMatrix'
-import { EmojiButton } from './EmojiButton'
+import { IconButton } from './IconButton'
 
 const CIRC = 2 * Math.PI * 48
+
+const fmtDur = (sec: number) => `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}`
+
+const parseDur = (v: string): number => {
+  const p = v.trim().split(/[: ]+/)
+  if (!p.length) return NaN
+  if (p.length === 1) {
+    const m = parseInt(p[0], 10)
+    return isNaN(m) || m < 0 ? NaN : m * 60
+  }
+  const m = parseInt(p[0], 10)
+  const s = parseInt(p[1], 10)
+  return isNaN(m) || isNaN(s) || m < 0 || s < 0 ? NaN : m * 60 + s
+}
 
 export function TimerPanel({
   timer,
@@ -20,10 +37,10 @@ export function TimerPanel({
   onReset: () => void
 }) {
   const running = timer === 'run'
+  const [editing, setEditing] = useState<string | null>(null)
   const frac = Math.max(0, Math.min(1, remaining / (timerDur * 1000)))
   const mins = Math.floor(Math.max(0, Math.round(remaining / 1000)) / 60)
   const secs = Math.round(remaining / 1000) % 60
-  const setMins = Math.floor(timerDur / 60)
 
   return (
     <section className="panel timer">
@@ -48,13 +65,25 @@ export function TimerPanel({
       {timer === 'idle' && (
         <div className="set-row">
           <button type="button" className="step" onClick={() => onChangeDur(timerDur - 60)} aria-label="diminuir">
-            <span aria-hidden="true">−</span>
+            <ArrowDown aria-hidden="true" />
           </button>
-          <div className="set-val">
-            <DotMatrix text={`${pad(setMins)}:00`} className="dm-mini" />
-          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            className="time-entry"
+            value={editing ?? fmtDur(timerDur)}
+            onFocus={() => setEditing(fmtDur(timerDur))}
+            onChange={(e) => {
+              setEditing(e.currentTarget.value)
+              const sec = parseDur(e.currentTarget.value)
+              if (Number.isFinite(sec) && sec > 0) onChangeDur(sec)
+            }}
+            onBlur={() => setEditing(null)}
+            aria-label="tempo"
+          />
           <button type="button" className="step" onClick={() => onChangeDur(timerDur + 60)} aria-label="aumentar">
-            <span aria-hidden="true">+</span>
+            <ArrowUp aria-hidden="true" />
           </button>
         </div>
       )}
@@ -62,9 +91,9 @@ export function TimerPanel({
       <div className="actions">
         {running || timer === 'pause' ? (
           <>
-            <EmojiButton glyph="♻️" alt="recomeçar" onClick={onReset} />
-            <EmojiButton
-              glyph={running ? '❄️' : '🚀'}
+            <IconButton icon={<GiSkullCrossedBones />} alt="recomeçar" onClick={onReset} />
+            <IconButton
+              icon={running ? <Hand /> : <GiPistolGun />}
               alt={running ? 'pausar' : 'retomar'}
               big
               pulse={running}
@@ -72,7 +101,7 @@ export function TimerPanel({
             />
           </>
         ) : (
-          <EmojiButton glyph="🚀" alt="iniciar" big onClick={onToggle} />
+          <IconButton icon={<GiPistolGun />} alt="iniciar" big onClick={onToggle} />
         )}
       </div>
     </section>

@@ -1,7 +1,8 @@
-export function EmojiButton({
-  glyph,
+import type { ReactNode } from 'react'
+
+export function IconButton({
+  icon,
   alt,
-  title,
   onClick,
   disabled,
   active,
@@ -9,9 +10,8 @@ export function EmojiButton({
   big,
   className,
 }: {
-  glyph: string
+  icon: ReactNode
   alt: string
-  title?: string
   onClick: () => void
   disabled?: boolean
   active?: boolean
@@ -26,9 +26,8 @@ export function EmojiButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={alt}
-      title={title}
     >
-      <span aria-hidden="true">{glyph}</span>
+      <span aria-hidden="true">{icon}</span>
     </button>
   )
 }
